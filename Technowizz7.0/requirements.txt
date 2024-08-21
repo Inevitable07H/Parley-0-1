@@ -3,3 +3,4 @@ PyPDF2
 firebase-admin
 requests
 google-cloud-firestore
+groq
