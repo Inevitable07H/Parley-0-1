@@ -86,7 +86,7 @@ def log_attempt(user_data, guess, is_correct):
 
 # Predefined data
 predefined_files = [
-    "file-1.pdf", "file-5.pdf", "file-4.pdf", "file-3.pdf", "file-2.pdf"
+    "Technowizz7.0/file-1.pdf", "Technowizz7.0/file-5.pdf", "Technowizz7.0/file-4.pdf", "Technowizz7.0/file-3.pdf", "Technowizz7.0/file-2.pdf"
 ]
 
 suspect_names = ["Eve Davis", "Helen Coleman" ,"Xavier Green","Victor Lewis","Henry Taylor"]
