@@ -18,7 +18,7 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+client = Groq(api_key="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")
 
 def extract_text_from_pdf(file_path):
     pdf_reader = PdfReader(file_path)
