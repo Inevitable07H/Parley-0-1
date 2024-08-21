@@ -1,36 +1,44 @@
 import streamlit as st
 from PyPDF2 import PdfReader
-import requests
 from datetime import datetime, timedelta
-import os
 import json
+import os
 import firebase_admin
 from firebase_admin import credentials, firestore
 from groq import Groq
 
 # Initialize Firebase Admin SDK
-if not firebase_admin._apps:
-    try:
-        cred = credentials.Certificate("Technowizz7.0/parley01-cb99c-firebase-adminsdk-t8cg8-7e1e56682d.json")
-        firebase_admin.initialize_app(cred)
-    except Exception as e:
-        st.error(f"Failed to initialize Firebase: {e}")
+def initialize_firebase():
+    if not firebase_admin._apps:
+        try:
+            cred = credentials.Certificate("Technowizz7.0/parley01-cb99c-firebase-adminsdk-t8cg8-7e1e56682d.json")
+            firebase_admin.initialize_app(cred)
+        except Exception as e:
+            st.error(f"Failed to initialize Firebase: {e}")
+            st.stop()
 
+initialize_firebase()
 db = firestore.client()
 
-client = Groq(api_key="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")
+# Initialize Groq API client
+def initialize_groq():
+    return Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+client = initialize_groq()
+
+# Function to extract text from a PDF file
 def extract_text_from_pdf(file_path):
     pdf_reader = PdfReader(file_path)
     text = ""
-    for page_num in range(len(pdf_reader.pages)):
-        text += pdf_reader.pages[page_num].extract_text()
+    for page in pdf_reader.pages:
+        text += page.extract_text()
     return text
 
+# Function to get AI response using Groq API
 def ai_response(question, text, suspect_name, is_criminal):
     tones = {
         "Eve Davis": "calm and professional",
-        "Henry Taylor":"nervous and evasive",
+        "Henry Taylor": "nervous and evasive",
         "Victor Lewis": "confident and manipulative",
         "Xavier Green": "sarcastic and dismissive",
         "Helen Coleman": "manipulative and egoistic"
@@ -39,19 +47,21 @@ def ai_response(question, text, suspect_name, is_criminal):
     
     prompt = f"Assume you are {'the criminal' if is_criminal else 'a suspect'} named {suspect_name} being investigated by detectives Vector Clark and Shaw Chen in a cyberfraud case involving Maria James. You have a {tone} tone. The information about you is: {text[:500]}... The detectives ask: {question}. How do you respond?"
 
-    response = client.chat.completions.create(
-        model="llama3-8b-8192",
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
-    )
-
-    if response and response.choices:
-        return response.choices[0].message.content.strip()
-    else:
-        st.error("Error: Could not retrieve response from Groq API.")
+    try:
+        response = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        if response and response.choices:
+            return response.choices[0].message.content.strip()
+        else:
+            st.error("Error: Could not retrieve response from Groq API.")
+            return "Error: Could not retrieve response from Groq API."
+    except Exception as e:
+        st.error(f"API request failed: {e}")
         return "Error: Could not retrieve response from Groq API."
 
+# Timer functions
 def start_timer():
     if "end_time" not in st.session_state:
         st.session_state.end_time = datetime.now() + timedelta(minutes=35)
@@ -65,6 +75,7 @@ def check_timer():
         st.error("Time's up!")
         st.stop()
 
+# Function to log attempts
 def log_attempt(user_data, guess, is_correct):
     try:
         user_data['attempts'].append({
@@ -89,9 +100,9 @@ predefined_files = [
     "Technowizz7.0/file-1.pdf", "Technowizz7.0/file-5.pdf", "Technowizz7.0/file-4.pdf", "Technowizz7.0/file-3.pdf", "Technowizz7.0/file-2.pdf"
 ]
 
-suspect_names = ["Eve Davis", "Helen Coleman" ,"Xavier Green","Victor Lewis","Henry Taylor"]
+suspect_names = ["Eve Davis", "Helen Coleman", "Xavier Green", "Victor Lewis", "Henry Taylor"]
 suspect_images = ["Technowizz7.0/image-1.webp", "Technowizz7.0/image-2.png", "Technowizz7.0/image-3.png", "Technowizz7.0/image-4.jpg", "Technowizz7.0/image-5.webp"]
-correct_name = "20" 
+correct_name = "Victor Lewis"
 
 # Initialize Streamlit session state
 st.set_page_config(page_title="Technowizz7.0")
@@ -156,7 +167,7 @@ else:
                 st.session_state.chat_open = True
             st.image(suspect_image, use_column_width=True)
 
-    user_guess = st.text_input("Enter the Final Suspect ID:", placeholder="Type the suspect's ID here...",disabled=st.session_state.input_disabled)
+    user_guess = st.text_input("Enter the Final Suspect ID:", placeholder="Type the suspect's ID here...", disabled=st.session_state.input_disabled)
     if user_guess and not st.session_state.input_disabled:
         is_correct = user_guess.strip().lower() == correct_name.lower()
         log_attempt(st.session_state.user_data, user_guess, is_correct)
@@ -181,7 +192,7 @@ else:
         text = extract_text_from_pdf(selected_file_path)
         is_criminal = st.session_state.is_criminal[selected_file_index]
 
-        st.header(f"Chat with Suspect {selected_file_index+1}: {suspect_name}")
+        st.header(f"Chat with Suspect {selected_file_index + 1}: {suspect_name}")
         st.subheader("PDF Content")
         st.text(text)
 
