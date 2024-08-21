@@ -22,7 +22,7 @@ db = firestore.client()
 
 # Initialize Groq API client
 def initialize_groq():
-    return Groq(api_key=os.getenv("GROQ_API_KEY"))
+    return Groq(api_key="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")
 
 client = initialize_groq()
 
