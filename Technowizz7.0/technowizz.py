@@ -30,7 +30,7 @@ def extract_text_from_pdf(file_path):
 def ai_response(question, text, suspect_name, is_criminal):
     tones = {
         "Eve Davis": "calm and professional",
-        "Henry Taylor": "nervous and evasive",
+        "Henry Taylor":"nervous and evasive",
         "Victor Lewis": "confident and manipulative",
         "Xavier Green": "sarcastic and dismissive",
         "Helen Coleman": "manipulative and egoistic"
