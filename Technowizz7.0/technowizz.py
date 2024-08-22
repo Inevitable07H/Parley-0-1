@@ -85,7 +85,7 @@ predefined_files = [
 
 suspect_names = ["Eve Davis", "Helen Coleman", "Xavier Green", "Victor Lewis", "Henry Taylor"]
 suspect_images = ["Technowizz7.0/image-1.webp", "Technowizz7.0/image-2.png", "Technowizz7.0/image-3.png", "Technowizz7.0/image-4.jpg", "Technowizz7.0/image-5.webp"]
-correct_name = "Victor Lewis"  # Correct suspect's name
+correct_name = "20"  # Correct suspect's name
 
 # Initialize Streamlit session state
 st.set_page_config(page_title="Technowizz7.0")
@@ -154,7 +154,7 @@ else:
                 st.session_state.chat_open = True
             st.image(suspect_image, use_column_width=True)
 
-    user_guess = st.text_input("Enter the Final Suspect Name:", disabled=st.session_state.input_disabled)
+    user_guess = st.text_input("Enter the Final Suspect Id:", placeholder="Enter the Suspect ID here", disabled=st.session_state.input_disabled)
     if user_guess and not st.session_state.input_disabled:
         is_correct = (user_guess.lower() == correct_name.lower())  # Case-insensitive comparison
         log_attempt(st.session_state.user_data, user_guess, is_correct)
