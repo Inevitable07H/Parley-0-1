@@ -85,7 +85,7 @@ predefined_files = [
 
 suspect_names = ["Eve Davis", "Helen Coleman", "Xavier Green", "Victor Lewis", "Henry Taylor"]
 suspect_images = ["Technowizz7.0/image-1.webp", "Technowizz7.0/image-2.png", "Technowizz7.0/image-3.png", "Technowizz7.0/image-4.jpg", "Technowizz7.0/image-5.webp"]
-correct_name = "20"  # Correct suspect's name
+correct_name = "Victor Lewis"  # Correct suspect's name
 
 # Initialize Streamlit session state
 st.set_page_config(page_title="Technowizz7.0")
@@ -138,8 +138,6 @@ else:
         st.session_state.is_criminal = [suspect_name == correct_name for suspect_name in suspect_names]
     if "name_guesses" not in st.session_state:
         st.session_state.name_guesses = 0
-    if "wrong_guesses" not in st.session_state:
-        st.session_state.wrong_guesses = 0
     if "chat_open" not in st.session_state:
         st.session_state.chat_open = False
     if "input_disabled" not in st.session_state:
@@ -163,13 +161,9 @@ else:
             st.session_state.input_disabled = True
             st.video("Technowizz7.0/Add a heading (5).mp4", start_time=0)  # Automatically start the success video
         else:
-            st.session_state.wrong_guesses += 1
-            if st.session_state.wrong_guesses >= 2:
-                st.error("Game over. You've used all your guesses.")
-                st.session_state.input_disabled = True
-                st.video("Technowizz7.0/Add a heading (6).mp4", start_time=0)  # Automatically start the failure video
-            else:
-                st.error(f"Incorrect guess. You have {2 - st.session_state.wrong_guesses} attempt(s) left.")
+            st.error("Game over. You've used your only guess.")
+            st.session_state.input_disabled = True
+            st.video("Technowizz7.0/Add a heading (6).mp4", start_time=0)  # Automatically start the failure video
 
     # Chat functionality
     if st.session_state.chat_open:
