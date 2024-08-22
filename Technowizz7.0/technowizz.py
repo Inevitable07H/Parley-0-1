@@ -157,7 +157,7 @@ else:
         if is_correct:
             st.success("Correct answer!")
             st.session_state.input_disabled = True
-            st.video("https://path_to_success_video.com")
+            st.video("Technowizz7.0/Add a heading (4).mp4")
         else:
             st.session_state.wrong_guesses += 1
             if st.session_state.wrong_guesses >= 2:
