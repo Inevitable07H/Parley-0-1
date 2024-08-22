@@ -1,23 +1,9 @@
 import streamlit as st
 from PyPDF2 import PdfReader
 from datetime import datetime, timedelta
-import firebase_admin
-from firebase_admin import credentials, firestore
-from groq import Groq
 import json
-
-# Initialize Firebase Admin SDK
-def initialize_firebase():
-    if not firebase_admin._apps:
-        try:
-            cred = credentials.Certificate("Technowizz7.0/parley01-cb99c-firebase-adminsdk-t8cg8-7e1e56682d.json")
-            firebase_admin.initialize_app(cred)
-        except Exception as e:
-            st.error(f"Failed to initialize Firebase: {e}")
-            st.stop()
-
-initialize_firebase()
-db = firestore.client()
+import os
+from groq import Groq
 
 # Initialize Groq API client
 def initialize_groq():
@@ -83,12 +69,13 @@ def log_attempt(user_data, guess, is_correct):
             'timestamp': datetime.now()
         })
 
-        # Save to Firestore
-        db.collection('game_logs').document(user_data['user_id']).set(user_data)
-
+        # Save user data to a local file
+        with open(f"{user_data['user_id']}_user_data.json", "w") as outfile:
+            json.dump(user_data, outfile, default=str)
+        
         st.success("Data saved successfully!")
     except Exception as e:
-        st.error(f"Error saving to Firestore: {e}")
+        st.error(f"Error saving data: {e}")
 
 # Predefined data
 predefined_files = [
@@ -127,6 +114,10 @@ if not st.session_state.logged_in:
             st.session_state.user_data['start_time'] = datetime.now()
             st.session_state.logged_in = True
             st.success("Login successful!")
+            
+            # Save user data to a local file immediately after login
+            with open(f"{st.session_state.user_data['user_id']}_user_data.json", "w") as outfile:
+                json.dump(st.session_state.user_data, outfile, default=str)
         else:
             st.error("Please enter both detective names.")
 else:
@@ -202,6 +193,6 @@ else:
         <script type="text/javascript">
             window.onbeforeunload = function() {
                 return 'Are you sure you want to leave? Your progress will be lost.';
-            };
+            }
         </script>
     """, unsafe_allow_html=True)
