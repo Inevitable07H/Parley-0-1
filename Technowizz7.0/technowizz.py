@@ -7,7 +7,7 @@ from firebase_admin import credentials, auth
 from groq import Groq
 
 # Initialize Firebase
-cred = credentials.Certificate('path/to/your/serviceAccountKey.json')
+cred = credentials.Certificate('Technowizz7.0/parley01-cb99c-firebase-adminsdk-t8cg8-7e1e56682d.json')
 firebase_admin.initialize_app(cred)
 
 # Initialize Groq API client
