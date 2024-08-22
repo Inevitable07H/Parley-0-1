@@ -2,13 +2,8 @@ import streamlit as st
 from PyPDF2 import PdfReader
 from datetime import datetime, timedelta
 import json
-import firebase_admin
-from firebase_admin import credentials, auth
+import os
 from groq import Groq
-
-# Initialize Firebase
-cred = credentials.Certificate('Technowizz7.0/parley01-cb99c-firebase-adminsdk-t8cg8-7e1e56682d.json')
-firebase_admin.initialize_app(cred)
 
 # Initialize Groq API client
 def initialize_groq():
@@ -83,17 +78,6 @@ def log_attempt(user_data, guess, is_correct):
     except Exception as e:
         st.error(f"Error saving data: {e}")
 
-# Function to sign in anonymously
-def sign_in_anonymous():
-    try:
-        # Sign in anonymously
-        user = auth.create_user()
-        st.session_state.user_id = user.uid
-        st.success("Signed in anonymously!")
-        st.experimental_rerun()  # Refresh the app to update UI state
-    except Exception as e:
-        st.error(f"Error signing in anonymously: {e}")
-
 # Predefined data
 predefined_files = [
     "Technowizz7.0/file-1.pdf", "Technowizz7.0/file-5.pdf", "Technowizz7.0/file-4.pdf", "Technowizz7.0/file-3.pdf", "Technowizz7.0/file-2.pdf"
@@ -101,94 +85,110 @@ predefined_files = [
 
 suspect_names = ["Eve Davis", "Helen Coleman", "Xavier Green", "Victor Lewis", "Henry Taylor"]
 suspect_images = ["Technowizz7.0/image-1.webp", "Technowizz7.0/image-2.png", "Technowizz7.0/image-3.png", "Technowizz7.0/image-4.jpg", "Technowizz7.0/image-5.webp"]
-correct_name = "20"
+correct_index = 3  # Index of the correct suspect (0-based, so 3 is Victor Lewis)
 
 # Initialize Streamlit session state
 st.set_page_config(page_title="Technowizz7.0")
 st.title("Parley0/1")
 
-if 'user_id' not in st.session_state:
-    st.session_state.user_id = None
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "user_data" not in st.session_state:
+    st.session_state.user_data = {
+        'user_id': '',
+        'detective1': '',
+        'detective2': '',
+        'start_time': None,
+        'end_time': None,
+        'attempts': []
+    }
+if "login_attempted" not in st.session_state:
+    st.session_state.login_attempted = False
 
-if st.session_state.user_id is None:
+if not st.session_state.logged_in and not st.session_state.login_attempted:
     st.subheader("Login Page")
-    if st.button("Sign in Anonymously"):
-        sign_in_anonymous()
+    detective1 = st.text_input("Detective Name-1")
+    detective2 = st.text_input("Detective Name-2")
+    if st.button("Login"):
+        if detective1 and detective2:
+            user_id = f"{detective1}_{detective2}_{int(datetime.now().timestamp())}"
+            st.session_state.user_data['user_id'] = user_id
+            st.session_state.user_data['detective1'] = detective1
+            st.session_state.user_data['detective2'] = detective2
+            st.session_state.user_data['start_time'] = datetime.now()
+            st.session_state.logged_in = True
+            st.session_state.login_attempted = True
+            st.success("Login successful!")
+            
+            # Save user data to a local file immediately after login
+            with open(f"{st.session_state.user_data['user_id']}_user_data.json", "w") as outfile:
+                json.dump(st.session_state.user_data, outfile, default=str)
+        else:
+            st.error("Please enter both detective names.")
 else:
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-    if "user_data" not in st.session_state:
-        st.session_state.user_data = {
-            'user_id': st.session_state.user_id,
-            'detective1': '',
-            'detective2': '',
-            'start_time': None,
-            'end_time': None,
-            'attempts': []
-        }
-    if "login_attempted" not in st.session_state:
-        st.session_state.login_attempted = False
+    start_timer()
+    check_timer()
 
-    if not st.session_state.logged_in and not st.session_state.login_attempted:
-        st.subheader("Login Page")
-        detective1 = st.text_input("Detective Name-1")
-        detective2 = st.text_input("Detective Name-2")
-        if st.button("Login"):
-            if detective1 and detective2:
-                st.session_state.user_data['detective1'] = detective1
-                st.session_state.user_data['detective2'] = detective2
-                st.session_state.user_data['start_time'] = datetime.now()
-                st.session_state.logged_in = True
-                st.session_state.login_attempted = True
-                st.success("Login successful!")
-                
-                # Save user data to a local file immediately after login
-                with open(f"{st.session_state.user_data['user_id']}_user_data.json", "w") as outfile:
-                    json.dump(st.session_state.user_data, outfile, default=str)
-            else:
-                st.error("Please enter both detective names.")
-    else:
-        start_timer()
-        check_timer()
+    # Initialize session state variables
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = {i: [] for i in range(len(predefined_files))}
+    if "selected_file_index" not in st.session_state:
+        st.session_state.selected_file_index = 0
+    if "is_criminal" not in st.session_state:
+        st.session_state.is_criminal = [i == correct_index for i in range(len(suspect_names))]
+    if "name_guesses" not in st.session_state:
+        st.session_state.name_guesses = 0
+    if "wrong_guesses" not in st.session_state:
+        st.session_state.wrong_guesses = 0
+    if "chat_open" not in st.session_state:
+        st.session_state.chat_open = False
+    if "input_disabled" not in st.session_state:
+        st.session_state.input_disabled = False
 
-        # Initialize session state variables
-        if "chat_history" not in st.session_state:
-            st.session_state.chat_history = {i: [] for i in range(len(predefined_files))}
-        if "selected_file_index" not in st.session_state:
-            st.session_state.selected_file_index = 0
-        if "is_criminal" not in st.session_state:
-            st.session_state.is_criminal = [suspect == correct_name for suspect in suspect_names]
-        if "name_guesses" not in st.session_state:
-            st.session_state.name_guesses = 0
-        if "wrong_guesses" not in st.session_state:
-            st.session_state.wrong_guesses = 0
-        if "chat_open" not in st.session_state:
-            st.session_state.chat_open = False
-        if "input_disabled" not in st.session_state:
-            st.session_state.input_disabled = False
+    # Display images and text input for suspect name guess
+    cols = st.columns(5)
+    for i, (suspect_name, suspect_image) in enumerate(zip(suspect_names, suspect_images)):
+        with cols[i]:
+            if st.button(f"{suspect_name}", key=f"chat_{i}"):
+                st.session_state.selected_file_index = i
+                st.session_state.chat_open = True
+            st.image(suspect_image, use_column_width=True)
 
-        # Display images and text input for suspect name guess
-        cols = st.columns(5)
-        for i, (suspect_name, suspect_image) in enumerate(zip(suspect_names, suspect_images)):
-            with cols[i]:
-                if st.button(f"{suspect_name}", key=f"chat_{i}"):
-                    st.session_state.selected_file_index = i
-                    st.session_state.chat_open = True
-                st.image(suspect_image, use_column_width=True)
-
-        user_guess = st.text_input("Enter the Final Suspect ID:", placeholder="Type the suspect's ID here...", disabled=st.session_state.input_disabled)
-        if user_guess and not st.session_state.input_disabled:
-            is_correct = user_guess.strip().lower() == correct_name.lower()
-            log_attempt(st.session_state.user_data, user_guess, is_correct)
-            if is_correct:
-                st.success("Correct answer!")
+    user_guess = st.number_input("Enter the Final Suspect Number:", min_value=1, max_value=5, step=1, disabled=st.session_state.input_disabled)
+    if user_guess and not st.session_state.input_disabled:
+        is_correct = (user_guess - 1) == correct_index  # Adjust for 0-based index
+        log_attempt(st.session_state.user_data, user_guess, is_correct)
+        if is_correct:
+            st.success("Correct answer!")
+            st.session_state.input_disabled = True
+            st.video("Technowizz7.0/Add a heading (5).mp4", start_time=0)  # Automatically start the success video
+        else:
+            st.session_state.wrong_guesses += 1
+            if st.session_state.wrong_guesses >= 2:
+                st.error("Game over. You've used all your guesses.")
                 st.session_state.input_disabled = True
-                st.video("Technowizz7.0/Add a heading (5).mp4", start_time=0)  # Automatically start the success video
+                st.video("Technowizz7.0/Add a heading (6).mp4", start_time=0)  # Automatically start the failure video
             else:
-                st.session_state.wrong_guesses += 1
-                if st.session_state.wrong_guesses >= 2:
-                    st.error("Game over. You've used all your guesses.")
-                    st.session_state.input_disabled = True
-                    st.video("Technowizz7.0/Add a heading (6).mp4", start_time=0)  # Automatically start the failure video
-                else:
-                    st.error(f"Incorrect guess. You have {2 - st.session_state.wrong_guesses} attempt(s) left.")
+                st.error(f"Incorrect guess. You have {2 - st.session_state.wrong_guesses} attempt(s) left.")
+
+    # Chat functionality
+    if st.session_state.chat_open:
+        selected_file_index = st.session_state.selected_file_index
+        selected_file_path = predefined_files[selected_file_index]
+        suspect_name = suspect_names[selected_file_index]
+        text = extract_text_from_pdf(selected_file_path)
+        is_criminal = st.session_state.is_criminal[selected_file_index]
+
+        st.header(f"Chat with Suspect {selected_file_index + 1}: {suspect_name}")
+        st.subheader("PDF Content")
+        st.text(text)
+
+        user_question = st.text_input("Ask a question", key=f"input_{selected_file_index}")
+        if user_question:
+            st.session_state.chat_history[selected_file_index].append(("User", user_question))
+            response = ai_response(user_question, text, suspect_name, is_criminal)
+            st.session_state.chat_history[selected_file_index].append((suspect_name, response))
+
+        # Display chat history
+        for speaker, message in st.session_state.chat_history[selected_file_index]:
+            st.write(f"**{speaker}:** {message}")
