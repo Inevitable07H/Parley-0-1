@@ -2,8 +2,13 @@ import streamlit as st
 from PyPDF2 import PdfReader
 from datetime import datetime, timedelta
 import json
-import os
+import firebase_admin
+from firebase_admin import credentials, auth
 from groq import Groq
+
+# Initialize Firebase
+cred = credentials.Certificate('path/to/your/serviceAccountKey.json')
+firebase_admin.initialize_app(cred)
 
 # Initialize Groq API client
 def initialize_groq():
@@ -78,6 +83,17 @@ def log_attempt(user_data, guess, is_correct):
     except Exception as e:
         st.error(f"Error saving data: {e}")
 
+# Function to sign in anonymously
+def sign_in_anonymous():
+    try:
+        # Sign in anonymously
+        user = auth.create_user()
+        st.session_state.user_id = user.uid
+        st.success("Signed in anonymously!")
+        st.experimental_rerun()  # Refresh the app to update UI state
+    except Exception as e:
+        st.error(f"Error signing in anonymously: {e}")
+
 # Predefined data
 predefined_files = [
     "Technowizz7.0/file-1.pdf", "Technowizz7.0/file-5.pdf", "Technowizz7.0/file-4.pdf", "Technowizz7.0/file-3.pdf", "Technowizz7.0/file-2.pdf"
@@ -91,88 +107,88 @@ correct_name = "20"
 st.set_page_config(page_title="Technowizz7.0")
 st.title("Parley0/1")
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "user_data" not in st.session_state:
-    st.session_state.user_data = {
-        'user_id': '',
-        'detective1': '',
-        'detective2': '',
-        'start_time': None,
-        'end_time': None,
-        'attempts': []
-    }
-if "login_attempted" not in st.session_state:
-    st.session_state.login_attempted = False
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = None
 
-if not st.session_state.logged_in and not st.session_state.login_attempted:
+if st.session_state.user_id is None:
     st.subheader("Login Page")
-    detective1 = st.text_input("Detective Name-1")
-    detective2 = st.text_input("Detective Name-2")
-    if st.button("Login"):
-        if detective1 and detective2:
-            user_id = f"{detective1}_{detective2}_{int(datetime.now().timestamp())}"
-            st.session_state.user_data['user_id'] = user_id
-            st.session_state.user_data['detective1'] = detective1
-            st.session_state.user_data['detective2'] = detective2
-            st.session_state.user_data['start_time'] = datetime.now()
-            st.session_state.logged_in = True
-            st.session_state.login_attempted = True
-            st.success("Login successful!")
-            
-            # Save user data to a local file immediately after login
-            with open(f"{st.session_state.user_data['user_id']}_user_data.json", "w") as outfile:
-                json.dump(st.session_state.user_data, outfile, default=str)
-        else:
-            st.error("Please enter both detective names.")
+    if st.button("Sign in Anonymously"):
+        sign_in_anonymous()
 else:
-    start_timer()
-    check_timer()
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+    if "user_data" not in st.session_state:
+        st.session_state.user_data = {
+            'user_id': st.session_state.user_id,
+            'detective1': '',
+            'detective2': '',
+            'start_time': None,
+            'end_time': None,
+            'attempts': []
+        }
+    if "login_attempted" not in st.session_state:
+        st.session_state.login_attempted = False
 
-    # Initialize session state variables
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = {i: [] for i in range(len(predefined_files))}
-    if "selected_file_index" not in st.session_state:
-        st.session_state.selected_file_index = 0
-    if "is_criminal" not in st.session_state:
-        st.session_state.is_criminal = [suspect == correct_name for suspect in suspect_names]
-    if "name_guesses" not in st.session_state:
-        st.session_state.name_guesses = 0
-    if "wrong_guesses" not in st.session_state:
-        st.session_state.wrong_guesses = 0
-    if "chat_open" not in st.session_state:
-        st.session_state.chat_open = False
-    if "input_disabled" not in st.session_state:
-        st.session_state.input_disabled = False
-
-    # Display images and text input for suspect name guess
-    cols = st.columns(5)
-    for i, (suspect_name, suspect_image) in enumerate(zip(suspect_names, suspect_images)):
-        with cols[i]:
-            if st.button(f"{suspect_name}", key=f"chat_{i}"):
-                st.session_state.selected_file_index = i
-                st.session_state.chat_open = True
-            st.image(suspect_image, use_column_width=True)
-
-    user_guess = st.text_input("Enter the Final Suspect ID:", placeholder="Type the suspect's ID here...", disabled=st.session_state.input_disabled)
-    if user_guess and not st.session_state.input_disabled:
-        is_correct = user_guess.strip().lower() == correct_name.lower()
-        log_attempt(st.session_state.user_data, user_guess, is_correct)
-        if is_correct:
-            st.success("Correct answer!")
-            st.session_state.input_disabled = True
-            st.video("Technowizz7.0/Add a heading (5).mp4", start_time=0)  # Automatically start the success video
-        else:
-            st.session_state.wrong_guesses += 1
-            if st.session_state.wrong_guesses >= 2:
-                st.error("Game over. You've used all your guesses.")
-                st.session_state.input_disabled = True
-                st.video("Technowizz7.0/Add a heading (6).mp4", start_time=0)  # Automatically start the failure video
+    if not st.session_state.logged_in and not st.session_state.login_attempted:
+        st.subheader("Login Page")
+        detective1 = st.text_input("Detective Name-1")
+        detective2 = st.text_input("Detective Name-2")
+        if st.button("Login"):
+            if detective1 and detective2:
+                st.session_state.user_data['detective1'] = detective1
+                st.session_state.user_data['detective2'] = detective2
+                st.session_state.user_data['start_time'] = datetime.now()
+                st.session_state.logged_in = True
+                st.session_state.login_attempted = True
+                st.success("Login successful!")
+                
+                # Save user data to a local file immediately after login
+                with open(f"{st.session_state.user_data['user_id']}_user_data.json", "w") as outfile:
+                    json.dump(st.session_state.user_data, outfile, default=str)
             else:
-                st.error(f"Incorrect guess. You have {2 - st.session_state.wrong_guesses} attempt(s) left.")
+                st.error("Please enter both detective names.")
+    else:
+        start_timer()
+        check_timer()
 
-    # Chat functionality
-  #Apis: 
-    #1- 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
-    #2- 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
-    #3- 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
+        # Initialize session state variables
+        if "chat_history" not in st.session_state:
+            st.session_state.chat_history = {i: [] for i in range(len(predefined_files))}
+        if "selected_file_index" not in st.session_state:
+            st.session_state.selected_file_index = 0
+        if "is_criminal" not in st.session_state:
+            st.session_state.is_criminal = [suspect == correct_name for suspect in suspect_names]
+        if "name_guesses" not in st.session_state:
+            st.session_state.name_guesses = 0
+        if "wrong_guesses" not in st.session_state:
+            st.session_state.wrong_guesses = 0
+        if "chat_open" not in st.session_state:
+            st.session_state.chat_open = False
+        if "input_disabled" not in st.session_state:
+            st.session_state.input_disabled = False
+
+        # Display images and text input for suspect name guess
+        cols = st.columns(5)
+        for i, (suspect_name, suspect_image) in enumerate(zip(suspect_names, suspect_images)):
+            with cols[i]:
+                if st.button(f"{suspect_name}", key=f"chat_{i}"):
+                    st.session_state.selected_file_index = i
+                    st.session_state.chat_open = True
+                st.image(suspect_image, use_column_width=True)
+
+        user_guess = st.text_input("Enter the Final Suspect ID:", placeholder="Type the suspect's ID here...", disabled=st.session_state.input_disabled)
+        if user_guess and not st.session_state.input_disabled:
+            is_correct = user_guess.strip().lower() == correct_name.lower()
+            log_attempt(st.session_state.user_data, user_guess, is_correct)
+            if is_correct:
+                st.success("Correct answer!")
+                st.session_state.input_disabled = True
+                st.video("Technowizz7.0/Add a heading (5).mp4", start_time=0)  # Automatically start the success video
+            else:
+                st.session_state.wrong_guesses += 1
+                if st.session_state.wrong_guesses >= 2:
+                    st.error("Game over. You've used all your guesses.")
+                    st.session_state.input_disabled = True
+                    st.video("Technowizz7.0/Add a heading (6).mp4", start_time=0)  # Automatically start the failure video
+                else:
+                    st.error(f"Incorrect guess. You have {2 - st.session_state.wrong_guesses} attempt(s) left.")
