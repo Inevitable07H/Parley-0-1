@@ -56,7 +56,7 @@ def check_timer():
     if remaining_time.total_seconds() > 0:
         minutes, seconds = divmod(remaining_time.total_seconds(), 60)
         st.sidebar.write(f"Time remaining: {int(minutes)}:{int(seconds):02d}")
-        st.sidebar.write(f"\nThis is the Parley's time which only be changed whenever you interact with any of the suspects.")
+        st.sidebar.write(f"\nThis is the Parley's time which only changes whenever you interact with any of the suspects.")
     else:
         st.error("Time's up!")
         st.stop()
@@ -85,7 +85,7 @@ predefined_files = [
 
 suspect_names = ["Eve Davis", "Helen Coleman", "Xavier Green", "Victor Lewis", "Henry Taylor"]
 suspect_images = ["Technowizz7.0/image-1.webp", "Technowizz7.0/image-2.png", "Technowizz7.0/image-3.png", "Technowizz7.0/image-4.jpg", "Technowizz7.0/image-5.webp"]
-correct_name = "20"
+correct_name = "Victor Lewis"
 
 # Initialize Streamlit session state
 st.set_page_config(page_title="Technowizz7.0")
@@ -102,7 +102,10 @@ if "user_data" not in st.session_state:
         'end_time': None,
         'attempts': []
     }
-if not st.session_state.logged_in:
+if "login_attempted" not in st.session_state:
+    st.session_state.login_attempted = False
+
+if not st.session_state.logged_in and not st.session_state.login_attempted:
     st.subheader("Login Page")
     detective1 = st.text_input("Detective Name-1")
     detective2 = st.text_input("Detective Name-2")
@@ -114,6 +117,7 @@ if not st.session_state.logged_in:
             st.session_state.user_data['detective2'] = detective2
             st.session_state.user_data['start_time'] = datetime.now()
             st.session_state.logged_in = True
+            st.session_state.login_attempted = True
             st.success("Login successful!")
             
             # Save user data to a local file immediately after login
@@ -157,43 +161,15 @@ else:
         if is_correct:
             st.success("Correct answer!")
             st.session_state.input_disabled = True
-            st.video("Technowizz7.0/Add a heading (4).mp4")
+            st.video("Technowizz7.0/Add a heading (5).mp4", start_time=0)  # Automatically start the success video
         else:
             st.session_state.wrong_guesses += 1
             if st.session_state.wrong_guesses >= 2:
                 st.error("Game over. You've used all your guesses.")
                 st.session_state.input_disabled = True
-                st.video("https://path_to_failure_video.com")
+                st.video("Technowizz7.0/Add a heading (6).mp4", start_time=0)  # Automatically start the failure video
             else:
                 st.error(f"Incorrect guess. You have {2 - st.session_state.wrong_guesses} attempt(s) left.")
 
     # Chat functionality
-    if st.session_state.chat_open:
-        selected_file_index = st.session_state.selected_file_index
-        selected_file_path = predefined_files[selected_file_index]
-        suspect_name = suspect_names[selected_file_index]
-        text = extract_text_from_pdf(selected_file_path)
-        is_criminal = st.session_state.is_criminal[selected_file_index]
-
-        st.header(f"Chat with Suspect {selected_file_index + 1}: {suspect_name}")
-        st.subheader("PDF Content")
-        st.text(text)
-
-        user_question = st.text_input("Ask a question", key=f"input_{selected_file_index}")
-        if user_question:
-            st.session_state.chat_history[selected_file_index].append(("User", user_question))
-            response = ai_response(user_question, text, suspect_name, is_criminal)
-            st.session_state.chat_history[selected_file_index].append((suspect_name, response))
-
-        chat_history = st.session_state.chat_history[selected_file_index]
-        for speaker, message in chat_history:
-            st.write(f"{speaker}: {message}")
-
-    # Implementing a confirmation to avoid unintentional page refresh
-    st.write("""
-        <script type="text/javascript">
-            window.onbeforeunload = function() {
-                return 'Are you sure you want to leave? Your progress will be lost.';
-            }
-        </script>
-    """, unsafe_allow_html=True)
+  
