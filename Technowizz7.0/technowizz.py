@@ -85,7 +85,7 @@ predefined_files = [
 
 suspect_names = ["Eve Davis", "Helen Coleman", "Xavier Green", "Victor Lewis", "Henry Taylor"]
 suspect_images = ["Technowizz7.0/image-1.webp", "Technowizz7.0/image-2.png", "Technowizz7.0/image-3.png", "Technowizz7.0/image-4.jpg", "Technowizz7.0/image-5.webp"]
-correct_name = "Victor Lewis"
+correct_name = "20"
 
 # Initialize Streamlit session state
 st.set_page_config(page_title="Technowizz7.0")
