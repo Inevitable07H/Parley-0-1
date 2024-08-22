@@ -56,6 +56,7 @@ def check_timer():
     if remaining_time.total_seconds() > 0:
         minutes, seconds = divmod(remaining_time.total_seconds(), 60)
         st.sidebar.write(f"Time remaining: {int(minutes)}:{int(seconds):02d}")
+        st.sidebar.write(f,"\nThis is the Parley's time which only be changed whenever you interact with any of the suspects.")
     else:
         st.error("Time's up!")
         st.stop()
