@@ -85,7 +85,7 @@ predefined_files = [
 
 suspect_names = ["Eve Davis", "Helen Coleman", "Xavier Green", "Victor Lewis", "Henry Taylor"]
 suspect_images = ["Technowizz7.0/image-1.webp", "Technowizz7.0/image-2.png", "Technowizz7.0/image-3.png", "Technowizz7.0/image-4.jpg", "Technowizz7.0/image-5.webp"]
-correct_index = 3  # Index of the correct suspect (0-based, so 3 is Victor Lewis)
+correct_name = "Victor Lewis"  # Correct suspect's name
 
 # Initialize Streamlit session state
 st.set_page_config(page_title="Technowizz7.0")
@@ -135,7 +135,7 @@ else:
     if "selected_file_index" not in st.session_state:
         st.session_state.selected_file_index = 0
     if "is_criminal" not in st.session_state:
-        st.session_state.is_criminal = [i == correct_index for i in range(len(suspect_names))]
+        st.session_state.is_criminal = [suspect_name == correct_name for suspect_name in suspect_names]
     if "name_guesses" not in st.session_state:
         st.session_state.name_guesses = 0
     if "wrong_guesses" not in st.session_state:
@@ -154,9 +154,9 @@ else:
                 st.session_state.chat_open = True
             st.image(suspect_image, use_column_width=True)
 
-    user_guess = st.number_input("Enter the Final Suspect Number:", min_value=1, max_value=5, step=1, disabled=st.session_state.input_disabled)
+    user_guess = st.text_input("Enter the Final Suspect Name:", disabled=st.session_state.input_disabled)
     if user_guess and not st.session_state.input_disabled:
-        is_correct = (user_guess - 1) == correct_index  # Adjust for 0-based index
+        is_correct = (user_guess.lower() == correct_name.lower())  # Case-insensitive comparison
         log_attempt(st.session_state.user_data, user_guess, is_correct)
         if is_correct:
             st.success("Correct answer!")
