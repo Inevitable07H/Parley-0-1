@@ -172,4 +172,7 @@ else:
                 st.error(f"Incorrect guess. You have {2 - st.session_state.wrong_guesses} attempt(s) left.")
 
     # Chat functionality
-  
+  #Apis: 
+    #1- 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
+    #2- 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
+    #3- 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
